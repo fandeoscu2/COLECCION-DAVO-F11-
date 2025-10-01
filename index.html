@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>F11 Davo</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#9aa4b2;
+      --accent:#60a34fa;
+      --green:#16a34a;
+      --red:#ef4444;
+      --yellow:#eab308;
+      --gray:#6b7280;
+      color-scheme: dark;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, Arial; margin:16px; background:linear-gradient(180deg,#071129 0%, #041024 100%); color:#e6eef6}
+    .app{max-width:900px;margin:0 auto;padding:18px;background:rgba(255,255,255,0.02);border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:8px;align-items:center}
+    .month-nav button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px;border-radius:8px;color:var(--muted);cursor:pointer}
+
+    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:transparent;padding:8px}
+    .weekday{font-size:12px;color:var(--muted);text-align:center;padding:6px}
+    .day{
+      min-height:78px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;justify-content:flex-start;cursor:default;transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .day:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(2,6,23,0.6)}
+    .num{font-weight:600;font-size:14px}
+    .muted{font-size:12px;color:var(--muted);margin-top:6px}
+
+    /* statuses */
+    .day.green{border:2px solid rgba(34,197,94,0.4);background:linear-gradient(180deg, rgba(34,197,94,0.25), rgba(34,197,94,0.1));}
+    .day.red{border:2px solid rgba(239,68,68,0.4);background:linear-gradient(180deg, rgba(239,68,68,0.25), rgba(239,68,68,0.1));}
+    .day.gray{border:1px dashed rgba(255,255,255,0.04);background:linear-gradient(180deg, rgba(107,114,128,0.03), rgba(107,114,128,0.01));}
+    .day.yellow{border:2px solid rgba(234,179,8,0.4);background:linear-gradient(180deg, rgba(234,179,8,0.25), rgba(234,179,8,0.1));}
+
+    .note{margin-top:14px;padding:12px;border-radius:8px;background:rgba(255,255,255,0.02);min-height:48px}
+    .note p{margin:0;color:var(--muted)}
+    .note .label{font-weight:700;margin-bottom:6px}
+    .stats{margin-top:14px;padding:12px;border-radius:8px;background:rgba(255,255,255,0.04);font-size:16px;color:var(--muted);line-height:1.6}
+
+    /* Año llamativo pero sin brillo */
+    #yearLabel{
+      font-size:20px;
+      font-weight:900;
+      color:var(--accent);
+      letter-spacing:1px;
+    }
+
+    @media (max-width:640px){.day{min-height:64px;padding:6px}.app{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <h1>F11 Davo</h1>
+  </div>
+
+  <div class="controls">
+    <div class="month-nav">
+      <button id="prev">◀</button>
+      <button id="today">Hoy</button>
+      <button id="next">▶</button>
+    </div>
+  </div>
+</header>
+
+    <section id="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700" id="monthLabel">Mes</div>
+        <div id="yearLabel">Año</div>
+      </div>
+
+      <div class="calendar" id="calendarRoot"></div>
+
+<div style="display:flex; align-items:flex-start; gap:16px;">
+  <div style="flex:1;">
+    <div class="calendar" id="calendarRoot"></div>
+  </div>
+</div>
+
+      <div class="note" id="noteArea">
+        <div class="label">Información</div>
+        <p id="noteText"></p>
+      </div>
+      <br>
+
+     <div class="stats" id="statsArea">
+        <strong>Promedios y resultados generales (hasta 1/10/2025)</strong><br>
+        - F11 jugados: <strong>13</strong><br>
+        - Promedio de F11 ganados: <strong>84.6%</strong> (11/13)<br>
+        - Promedio de juegos ganados: <strong>71.4%</strong><br>
+        - Juegos ganados en total: <strong>167</strong><br>
+        - Juegos perdidos en total: <strong>67</strong><br>
+        - Personas SI total: <strong>65.7K</strong> (promedio <strong>5.05K</strong>)<br>
+        - Personas NO total: <strong>64.3K</strong> (promedio <strong>4.95K</strong>)<br>
+        - Puntos SI total: <strong>338.8M</strong> (promedio <strong>26.06M</strong>)<br>
+        - Puntos NO total: <strong>741.1M</strong> (promedio <strong>57.01M</strong>)<br>
+      </div>
+    </section>
+  </div>
+
+  <div class="stats">
+  📌 Para cambiar los meses apretá la flecha a la izquierda que aparece arriba a la derecha.  
+  Si apretás un día te aparecen las votaciones de ese día y cuántos juegos se ganaron.  
+  Abajo están los promedios y totales de todos los fútbol 11 desde el 11 de septiembre.
+  </div>
+
+  <script>
+    const weekdayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const calendarRoot = document.getElementById('calendarRoot');
+    const monthLabel = document.getElementById('monthLabel');
+    const yearLabel = document.getElementById('yearLabel');
+    const noteText = document.getElementById('noteText');
+
+    function renderWeekdays(){
+      for(let i=0;i<7;i++){
+        const el = document.createElement('div'); 
+        el.className='weekday'; 
+        el.textContent=weekdayNames[i]; 
+        calendarRoot.appendChild(el);
+      }
+    }
+
+    let cursor = new Date();
+
+    function startOfMonth(date){return new Date(date.getFullYear(), date.getMonth(), 1)}
+    function daysInMonth(date){return new Date(date.getFullYear(), date.getMonth()+1, 0).getDate()}
+
+    function renderMonth(date){
+      calendarRoot.innerHTML='';
+      renderWeekdays();
+
+      const start = startOfMonth(date);
+      const total = daysInMonth(date);
+      const firstWeekday = start.getDay();
+
+      monthLabel.textContent = date.toLocaleString('es-ES',{month:'long'}).toUpperCase();
+      yearLabel.textContent = date.getFullYear();
+      noteText.innerHTML = '';
+
+      for(let i=0;i<firstWeekday;i++){
+        const blank = document.createElement('div'); 
+        blank.className='day'; 
+        blank.style.opacity='0.05'; 
+        calendarRoot.appendChild(blank);
+      }
+
+      for(let d=1; d<=total; d++){
+        const node = document.createElement('div'); 
+        node.className='day'; 
+        node.dataset.day = d;
+        const num = document.createElement('div'); 
+        num.className='num'; 
+        num.textContent = d; 
+        node.appendChild(num);
+
+        const isSept2025 = (date.getMonth() === 8 && date.getFullYear() === 2025);
+        const isOct2025 = (date.getMonth() === 9 && date.getFullYear() === 2025);
+
+        // Fechas con datos (copiadas y actualizadas)
+        if (d === 11 && isSept2025) {
+          node.classList.add('red');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>11 de septiembre 2025</strong><br><br>SI: 5.7k personas 34.4M puntos 35%<br><br>NO: 4.6k personas 63.1M puntos 65%<br><br> Ganó 13/18';
+          });
+        } else if (d === 14 && isSept2025) {
+          node.classList.add('green');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>14 de septiembre 2025</strong><br><br>SI: 4.0k personas 22.2M puntos 28%<br><br>NO: 4.2k personas 57.8M puntos 72%<br><br> Ganó 16/18';
+          });
+        } else if (d === 15 && isSept2025) {
+          node.classList.add('red');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>15 de septiembre 2025</strong><br><br>SI: 6.2k personas 25.3M puntos 23%<br><br>NO: 7.3k personas 87.4M puntos 77%<br><br> Ganó 12/18';
+          }); 
+        } else if (d === 17 && isSept2025) {
+          node.classList.add('green');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>17 de septiembre 2025</strong><br><br>SI: 5.1k personas 25.6M puntos 26%<br><br>NO: 5.4k personas 71.9M puntos 74%<br><br> Ganó 14/18';
+          });
+        } else if (d === 18 && isSept2025) {
+          node.classList.add('green');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>18 de septiembre 2025</strong><br><br>SI: 4.7k personas 24.1M puntos 27%<br><br>NO: 5.1k personas 64.1M puntos 73%<br><br> Ganó 15/18';
+          });
+        } else if (d === 19 && isSept2025) {
+          node.classList.add('green');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>19 de septiembre 2025</strong><br><br>SI: 4.2k personas 21.7M puntos 30%<br><br>NO: 4.2k personas 49.9M puntos 70%<br><br> Ganó 14/18';
+          });
+        } else if (d === 21 && isSept2025) {
+          node.classList.add('red');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>21 de septiembre 2025</strong><br><br>SI: 5.5k personas 27.6M puntos 32%<br><br>NO: 5.1k personas 57.8M puntos 68%<br><br> Ganó 13/18';
+          });
+        } else if (d === 24 && isSept2025) {
+          node.classList.add('yellow');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>24 de septiembre 2025</strong><br><br>SI: 4.4k personas 24M puntos 32%<br><br>NO: 4.4k personas 50M puntos 68%<br><br> Ganó 13/18';
+          });
+        } else if (d === 25 && isSept2025) {
+          node.classList.add('red');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>25 de septiembre 2025</strong><br><br>SI: 6.6k personas 35.5M puntos 44%<br><br>NO: 4.9k personas 44.7M puntos 56%<br><br> Ganó 12/18';
+          });
+        } else if (d === 26 && isSept2025) {
+          node.classList.add('red');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>26 de septiembre 2025</strong><br><br>SI: 4.7k personas 23.6M puntos 35%<br><br>NO: 4.4k personas 44M puntos 65%<br><br> Ganó 13/18';
+          });
+        } else if (d === 27 && isSept2025) {
+          node.classList.add('red');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>27 de septiembre 2025</strong><br><br>SI: 4.2k personas 22.1M puntos 35%<br><br>NO: 4.1k personas 41.2M puntos 65%<br><br> Ganó 9/18';
+          });
+        } else if (d === 28 && isSept2025) {
+          node.classList.add('green');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>28 de septiembre 2025</strong><br><br>SI: 5.2k personas 23.2M puntos 30%<br><br>NO: 5.5k personas 54.8M puntos 70%<br><br> Ganó 14/18';
+          });
+        } else if (d === 1 && isOct2025) {
+          node.classList.add('red');
+          node.addEventListener('click', ()=> {
+            noteText.innerHTML = '<strong>1 de octubre 2025</strong><br><br>SI: 5.2k personas 29.5M puntos 35%<br><br>NO: 5.1k personas 54.4M puntos 65%<br><br> Ganó 9/18';
+          });
+        } else {
+          node.classList.add('gray');
+          node.addEventListener('click', ()=> { noteText.innerHTML = ''; });
+        }
+
+        calendarRoot.appendChild(node);
+      }
+    }
+
+    document.getElementById('prev').addEventListener('click', ()=>{ cursor = new Date(cursor.getFullYear(), cursor.getMonth()-1, 1); renderMonth(cursor); });
+    document.getElementById('next').addEventListener('click', ()=>{ cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1); renderMonth(cursor); });
+    document.getElementById('today').addEventListener('click', ()=>{ cursor = new Date(); renderMonth(cursor); });
+
+    renderMonth(cursor);
+  </script>
+</body>
+</html>
